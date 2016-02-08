@@ -57,7 +57,7 @@ angular.module('confusionApp')
                         
         }])
 
-        .controller('FeedbackController', ['$scope', function($scope) {
+        .controller('FeedbackController', ['$scope', 'feedbackFactory', function($scope, feedbackFactory) {
             
             $scope.sendFeedback = function() {
                 
@@ -69,6 +69,9 @@ angular.module('confusionApp')
                 }
                 else {
                     $scope.invalidChannelSelection = false;
+                    
+                    feedbackFactory.getFeedback().save($scope.feedback);
+                    
                     $scope.feedback = {mychannel:"", firstName:"", lastName:"", agree:false, email:"" };
                     $scope.feedback.mychannel="";
                     $scope.feedbackForm.$setPristine();
@@ -114,23 +117,33 @@ angular.module('confusionApp')
                 $scope.commentForm.$setPristine();
                 
                 $scope.mycomment = {rating:5, comment:"", author:"", date:""};
-            }
+            };
         }])
 
         // implement the IndexController and About Controller here
         .controller('AboutController', ['$scope', 'corporateFactory', function($scope, corporateFactory) {
            
-            var leaders = corporateFactory.getLeaders();
+            $scope.showLeaders = false;
+            $scope.message = "Loading ....";
             
-            $scope.leaders = leaders;
+            $scope.leaders = corporateFactory.getLeaders().query(
+                function(response) {
+                    $scope.leaders = response;
+                    $scope.showLeaders = true;
+                },
+                function(response) {
+                    $scope.message = "Error: " + response.status + " " + response.statusTex;
+                }
+            );
         }])
 
-
-        .controller('IndexController', ['$scope', 'menuFactory', 'corporateFactory', function($scope, menuFactory, corporateFactory){
-            
+        .controller('IndexController', ['$scope', 'menuFactory', 'corporateFactory', function($scope, menuFactory, corporateFactory) {
             
             $scope.showDish = false;
             $scope.message = "Loading ...";
+            
+            $scope.showPromotion = false;
+            $scope.showExecChef = false;
             
             $scope.dish = menuFactory.getDishes().get({id:0})
                 .$promise.then(
@@ -143,12 +156,26 @@ angular.module('confusionApp')
                     }
             );
             
-            var execChef = corporateFactory.getLeader(3);
-            $scope.execChef = execChef;
+            $scope.execChef = corporateFactory.getLeaders().get({id:3})
+                .$promise.then(
+                    function(response) {
+                        $scope.execChef = response;
+                        $scope.showExecChef = true;
+                    }, 
+                    function(response) {
+                        $scope.message = "Error: " + response.status + " " + response.statusText;
+                    }
+            )
             
-            var promotion = menuFactory.getPromotion(0);
-            $scope.promotion = promotion;
-        }])
-
-
-;
+            $scope.promotion = menuFactory.getPromotion().get({id:0})
+                .$promise.then(
+                    function(response) {
+                        $scope.promotion = response;
+                        $scope.showPromotion = true;
+                    },
+                    function(response){
+                        $scope.message = "Erorr: " + response.status + " " + response.statusText;  
+                    }
+            )
+            
+        }]);
